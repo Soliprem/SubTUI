@@ -60,11 +60,11 @@ func (m model) View() string {
 	mainContent := ""
 	if m.loading {
 		mainContent = "\n  Searching your library..."
-	} else if m.filterMode == filterSongs {
+	} else if m.displayMode == displaySongs {
 		mainContent = mainSongsContent(m, mainWidth, mainHeight)
-	} else if m.filterMode == filterAlbums {
+	} else if m.displayMode == displayAlbums {
 		mainContent = mainAlbumsContent(m, mainWidth, mainHeight)
-	} else if m.filterMode == filterArtist {
+	} else if m.displayMode == displayArtist {
 		mainContent = mainArtistContent(m, mainWidth, mainHeight)
 	}
 

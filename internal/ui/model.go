@@ -28,6 +28,12 @@ const (
 )
 
 const (
+	displaySongs = iota
+	displayAlbums
+	displayArtist
+)
+
+const (
 	LoopNone = 0
 	LoopAll  = 1
 	LoopOne  = 2
@@ -87,8 +93,9 @@ type model struct {
 	height int
 
 	// View Mode
-	viewMode   int
-	filterMode int
+	viewMode    int
+	filterMode  int
+	displayMode int
 
 	// App State
 	err              error
@@ -158,6 +165,7 @@ func InitialModel() model {
 		cursorSide:       0,
 		viewMode:         startMode,
 		filterMode:       filterSongs,
+		displayMode:      displaySongs,
 		starredMap:       make(map[string]bool),
 		lastPlayedSongID: "",
 		loginInputs:      initialLoginInputs(),

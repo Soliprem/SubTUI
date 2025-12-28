@@ -53,6 +53,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "enter":
 			return enter(m)
 
+		case "backspace":
+			return goBack(m, msg)
+
 		case "up", "k":
 			m = navigateUp(m)
 
@@ -186,8 +189,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case songsResultMsg:
 		m.loading = false
 		m.songs = msg.songs
-		m.albums = nil
-		m.artists = nil
 		m.cursorMain = 0
 		m.mainOffset = 0
 		m.focus = focusMain
@@ -195,8 +196,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case albumsResultMsg:
 		m.loading = false
 		m.albums = msg.albums
-		m.songs = nil
-		m.artists = nil
 		m.cursorMain = 0
 		m.mainOffset = 0
 		m.focus = focusMain
@@ -204,8 +203,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case artistsResultMsg:
 		m.loading = false
 		m.artists = msg.artists
-		m.songs = nil
-		m.albums = nil
 		m.cursorMain = 0
 		m.mainOffset = 0
 		m.focus = focusMain
@@ -288,15 +285,21 @@ func enter(m model) (tea.Model, tea.Cmd) {
 			m.focus = focusMain
 			m.viewMode = viewList
 			m.textInput.Blur()
-			m.songs = nil
-			m.albums = nil
-			m.artists = nil
+
+			switch m.filterMode {
+			case filterSongs:
+				m.displayMode = displaySongs
+			case filterAlbums:
+				m.displayMode = displayAlbums
+			case filterArtist:
+				m.displayMode = displayArtist
+			}
 
 			return m, searchCmd(query, m.filterMode)
 		}
 	} else if m.focus == focusMain {
 		if m.viewMode == viewList {
-			switch m.filterMode {
+			switch m.displayMode {
 			// Play song
 			case filterSongs:
 				if len(m.songs) > 0 {
@@ -308,7 +311,7 @@ func enter(m model) (tea.Model, tea.Cmd) {
 				if len(m.albums) > 0 {
 					selectedAlbum := m.albums[m.cursorMain]
 					m.loading = true
-					m.filterMode = filterSongs
+					m.displayMode = displaySongs
 					m.songs = nil
 
 					return m, getAlbumSongs(selectedAlbum.ID)
@@ -319,7 +322,7 @@ func enter(m model) (tea.Model, tea.Cmd) {
 				if len(m.artists) > 0 {
 					selectedArtist := m.artists[m.cursorMain]
 					m.loading = true
-					m.filterMode = filterAlbums
+					m.displayMode = displayAlbums
 					m.albums = nil
 
 					return m, getArtistAlbums(selectedArtist.ID)
@@ -342,6 +345,26 @@ func enter(m model) (tea.Model, tea.Cmd) {
 
 	return m, nil
 }
+
+func goBack(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.focus == focusSearch {
+		return typeInput(m, msg)
+	}
+
+	switch m.displayMode {
+	case displaySongs:
+		if m.albums != nil {
+			m.displayMode = displayAlbums
+		}
+	case displayAlbums:
+		if m.artists != nil {
+			m.displayMode = displayArtist
+		}
+	}
+
+	return m, nil
+}
+
 func navigateUp(m model) model {
 	if m.focus == focusMain && m.cursorMain > 0 {
 		m.cursorMain--
@@ -631,6 +654,8 @@ func mediaShowFavorites(m model, msg tea.Msg) (model, tea.Cmd) {
 	if m.focus == focusSearch {
 		return typeInput(m, msg)
 	}
+
+	m.displayMode = displaySongs
 
 	m.songs = nil
 	m.viewMode = viewList
