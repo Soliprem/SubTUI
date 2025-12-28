@@ -365,8 +365,12 @@ func footerContent(m model) string {
 	title := ""
 	artist := ""
 
-	if m.playerStatus.Title == "" {
-		title = "Not Playing"
+	if m.playerStatus.Title == "<nil>" {
+		title = "Nothing playing"
+		artist = ""
+	} else if strings.Contains(m.playerStatus.Title, "stream?c=Depth") {
+		title = "Loading..."
+		artist = ""
 	} else {
 		title = m.playerStatus.Title
 		artist = m.playerStatus.Artist + " - " + m.playerStatus.Album
