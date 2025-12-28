@@ -85,3 +85,24 @@ func syncPlayerCmd() tea.Cmd {
 		return statusMsg(player.GetPlayerStatus())
 	})
 }
+
+func getStarredCmd() tea.Cmd {
+	return func() tea.Msg {
+		result, err := api.SubsonicGetStarred()
+		if err != nil {
+			return errMsg{err}
+		}
+		return starredResultMsg{result}
+	}
+}
+
+func toggleStarCmd(id string, isCurrentlyStarred bool) tea.Cmd {
+	return func() tea.Msg {
+		if isCurrentlyStarred {
+			api.SubsonicUnstar(id)
+		} else {
+			api.SubsonicStar(id)
+		}
+		return nil
+	}
+}

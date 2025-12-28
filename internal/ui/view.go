@@ -218,7 +218,13 @@ func mainSongsContent(m model, mainWidth int, mainHeight int) string {
 			}
 		}
 
-		row := fmt.Sprintf("%-*s %-*s %-*s %s",
+		starIcon := " "
+		if m.starredMap[song.ID] {
+			starIcon = lipgloss.NewStyle().Render("♥︎")
+		}
+
+		row := fmt.Sprintf("%s %-*s %-*s %-*s %s",
+			starIcon,
 			colTitle, truncate(song.Title, colTitle),
 			colArtist, truncate(song.Artist, colArtist),
 			colAlbum, truncate(song.Album, colAlbum),
@@ -279,7 +285,13 @@ func mainAlbumsContent(m model, mainWidth int, mainHeight int) string {
 			}
 		}
 
-		row := fmt.Sprintf("%-*s %-*s",
+		starIcon := " "
+		if m.starredMap[album.ID] {
+			starIcon = lipgloss.NewStyle().Render("♥︎")
+		}
+
+		row := fmt.Sprintf("%s %-*s %-*s",
+			starIcon,
 			colAlbum, truncate(album.Name, colAlbum),
 			colArtist, truncate(album.Artist, colArtist),
 		)
@@ -333,7 +345,13 @@ func mainArtistContent(m model, mainWidth int, mainHeight int) string {
 			}
 		}
 
-		row := fmt.Sprintf("%-*s",
+		starIcon := " "
+		if m.starredMap[artist.ID] {
+			starIcon = lipgloss.NewStyle().Render("♥︎")
+		}
+
+		row := fmt.Sprintf("%s %-*s",
+			starIcon,
 			colArtist, truncate(artist.Name, colArtist),
 		)
 

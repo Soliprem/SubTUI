@@ -28,6 +28,11 @@ type SubsonicResponse struct {
 		Artist struct {
 			Albums []Album `json:"album"`
 		} `json:"artist"`
+		Starred2 struct {
+			Artist []Artist `json:"artist"`
+			Album  []Album  `json:"album"`
+			Song   []Song   `json:"song"`
+		} `json:"starred2"`
 	} `json:"subsonic-response"`
 }
 
@@ -224,6 +229,35 @@ func SubsonicGetArtist(id string) ([]Album, error) {
 	}
 
 	return data.Response.Artist.Albums, nil
+}
+
+func SubsonicStar(id string) {
+	params := map[string]string{
+		"id": id,
+	}
+
+	subsonicGET("/star", params)
+}
+
+func SubsonicUnstar(id string) {
+	params := map[string]string{
+		"id": id,
+	}
+
+	subsonicGET("/unstar", params)
+}
+
+func SubsonicGetStarred() (*SearchResult3, error) {
+	data, err := subsonicGET("/getStarred2", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SearchResult3{
+		Artists: data.Response.Starred2.Artist,
+		Albums:  data.Response.Starred2.Album,
+		Songs:   data.Response.Starred2.Song,
+	}, nil
 }
 
 func SubsonicStream(id string) string {

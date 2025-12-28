@@ -74,6 +74,9 @@ type model struct {
 	// Queue System
 	queue      []api.Song
 	queueIndex int
+
+	// Stars
+	starredMap map[string]bool
 }
 
 type songsResultMsg struct {
@@ -90,6 +93,10 @@ type artistsResultMsg struct {
 
 type playlistResultMsg struct {
 	playlists []api.Playlist
+}
+
+type starredResultMsg struct {
+	result *api.SearchResult3
 }
 
 type errMsg struct {
@@ -113,6 +120,7 @@ func InitialModel() model {
 		cursorSide: 0,
 		viewMode:   viewList,
 		filterMode: filterSongs,
+		starredMap: make(map[string]bool),
 	}
 }
 
@@ -121,5 +129,6 @@ func (m model) Init() tea.Cmd {
 		textinput.Blink,
 		getPlaylists(),
 		syncPlayerCmd(),
+		getStarredCmd(),
 	)
 }

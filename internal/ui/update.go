@@ -78,6 +78,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		case ";":
 			m = mediaSeekRewind(m)
+
+		case "F":
+			return mediaToggleFavorite(m)
 		}
 
 	case playlistResultMsg:
@@ -127,6 +130,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.cursorMain = 0
 		m.mainOffset = 0
 		m.focus = focusMain
+
+	case starredResultMsg:
+		for _, s := range msg.result.Songs {
+			m.starredMap[s.ID] = true
+		}
+		for _, a := range msg.result.Albums {
+			m.starredMap[a.ID] = true
+		}
+		for _, r := range msg.result.Artists {
+			m.starredMap[r.ID] = true
+		}
+
 	}
 
 	// Update inputs
@@ -398,4 +413,41 @@ func mediaSeekRewind(m model) model {
 	}
 
 	return m
+}
+
+func mediaToggleFavorite(m model) (model, tea.Cmd) {
+	if m.focus == focusSearch {
+		return m, nil
+	}
+
+	id := ""
+
+	switch m.filterMode {
+	case filterSongs:
+		if len(m.songs) > 0 {
+			id = m.songs[m.cursorMain].ID
+		}
+	case filterAlbums:
+		if len(m.albums) > 0 {
+			id = m.albums[m.cursorMain].ID
+		}
+	case filterArtist:
+		if len(m.artists) > 0 {
+			id = m.artists[m.cursorMain].ID
+		}
+	}
+
+	if id == "" {
+		return m, nil
+	}
+
+	isStarred := m.starredMap[id]
+
+	if isStarred {
+		delete(m.starredMap, id)
+	} else {
+		m.starredMap[id] = true
+	}
+
+	return m, toggleStarCmd(id, isStarred)
 }
