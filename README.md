@@ -23,12 +23,10 @@ You can download pre-compiled binaries for Linux and macOS directly from the [Re
 ```bash
 # Clone the repo
 git clone https://github.com/MattiaPun/SubTUI.git
-
-# Enter directory
 cd SubTUI
 
 # Build
-go build -o subtui main.go
+go build .
 
 # Run
 ./subtui
@@ -87,7 +85,7 @@ On the first launch, SubTUI will ask for your server credentials:
 2. **Username**
 3. **Password**
 
-**Security Note**: Your credentials are stored in plaintext in `~/.subtui/config.yaml`.
+**Security Note**: Your credentials are stored in plaintext in `~/.config/subtui/config.yaml`.
 
 ##  Screenshots
 
