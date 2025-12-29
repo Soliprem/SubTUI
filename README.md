@@ -18,6 +18,11 @@ You must have **mpv** installed and available in your system path.
 
 You can download pre-compiled binaries for Linux and macOS directly from the [Releases](https://github.com/MattiaPun/SubTUI/releases) page. Simply download the archive for your architecture, extract it, and run the binary.
 
+### Arch Linux (AUR)
+
+You can install SubTUI directly from the AUR: ``yay -S subtui-git``
+
+
 ### From Source
 
 ```bash
