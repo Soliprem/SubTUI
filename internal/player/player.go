@@ -29,7 +29,7 @@ type PlayerStatus struct {
 }
 
 func InitPlayer() error {
-	socketPath := filepath.Join(os.TempDir(), fmt.Sprintf("subtui_mpv_socket_%d", os.Getuid()))
+	socketPath := filepath.Join(os.TempDir(), fmt.Sprintf("dev_subtui_mpv_socket_%d", os.Getuid()))
 	log.Printf("[Player] Initializing MPV IPC at %s", socketPath)
 
 	_ = exec.Command("pkill", "-f", socketPath).Run()

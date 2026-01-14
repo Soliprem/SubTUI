@@ -40,6 +40,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return login(m, msg)
 		}
 
+		if msg.String() == "?" {
+			m.showHelp = !m.showHelp
+			return m, nil
+		} else if m.showHelp {
+			return m, nil
+		}
+
 		if (msg.String() == "g" || m.lastKey == "g") && (m.focus == focusMain || m.focus == focusSidebar) {
 			switch msg.String() {
 			case "g":

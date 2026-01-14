@@ -123,6 +123,19 @@ type model struct {
 
 	// Input State
 	lastKey string
+
+	// Help Overlay
+	showHelp  bool
+	helpModel HelpModel
+}
+
+type HelpModel struct {
+	Width  int
+	Height int
+}
+
+type BackgroundWrapper struct {
+	RenderedView string
 }
 
 type loginResultMsg struct {
@@ -190,6 +203,8 @@ func InitialModel() model {
 		lastPlayedSongID: "",
 		loginInputs:      initialLoginInputs(),
 		lastKey:          "",
+		showHelp:         false,
+		helpModel:        NewHelpModel(),
 	}
 }
 

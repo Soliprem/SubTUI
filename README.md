@@ -49,6 +49,7 @@ go build .
 | `Tab`           | Cycle focus forward (Search → Sidebar → Main → Footer) |
 | `Shift` + `Tab` | Cycle focus backward                                   |
 | `Backspace`     | Back                                                   |
+| `?`             | Toggle help menu                                       |
 | `j` / `Down`    | Move selection down                                    |
 | `k` / `Up`      | Move selection up                                      |
 | `q`             | Quit application (except during Login)                 |
