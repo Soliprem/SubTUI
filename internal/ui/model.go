@@ -108,6 +108,7 @@ type model struct {
 	scrobbled        bool
 	dbusInstance     *integration.Instance
 	loginErr         string
+	notify           bool
 
 	// Queue System
 	queue      []api.Song
@@ -205,6 +206,7 @@ func InitialModel() model {
 		lastKey:          "",
 		showHelp:         false,
 		helpModel:        NewHelpModel(),
+		notify:           true,
 	}
 }
 
