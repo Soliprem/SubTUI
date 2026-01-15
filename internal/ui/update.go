@@ -739,15 +739,21 @@ func mediaSongPrev(m model, msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func mediaAddSongNext(m model) model {
 	if m.focus == focusMain {
-		selectedSong := m.songs[m.cursorMain]
+		selectedSongs := getSelectedSongs(m)
 
-		if len(m.queue) == 0 {
-			m.queue = []api.Song{selectedSong}
-			m.queueIndex = 0
-		} else {
-			insertAt := m.queueIndex + 1
-			tail := append([]api.Song{}, m.queue[insertAt:]...)
-			m.queue = append(m.queue[:insertAt], append([]api.Song{selectedSong}, tail...)...)
+		if selectedSongs != nil {
+			if len(m.queue) == 0 {
+				m.queue = selectedSongs
+				m.queueIndex = 0
+			} else {
+				insertAt := m.queueIndex + 1
+				tail := append([]api.Song{}, m.queue[insertAt:]...)
+				m.queue = append(m.queue[:insertAt], append(selectedSongs, tail...)...)
+			}
+
+			if m.viewMode == viewQueue && m.cursorMain > m.queueIndex {
+				m.cursorMain++
+			}
 		}
 	}
 
@@ -756,7 +762,12 @@ func mediaAddSongNext(m model) model {
 
 func mediaAddSongToQueue(m model) model {
 	if m.focus == focusMain {
-		m.queue = append(m.queue, m.songs[m.cursorMain])
+		selectedSongs := getSelectedSongs(m)
+
+		if selectedSongs != nil {
+			m.queue = append(m.queue, selectedSongs...)
+		}
+
 	}
 
 	return m
@@ -766,6 +777,9 @@ func mediaDeleteSongFromQueue(m model) model {
 	if m.focus == focusMain && m.viewMode == viewQueue && len(m.queue) > 0 {
 		if m.cursorMain != m.queueIndex {
 			m.queue = append(m.queue[:m.cursorMain], m.queue[m.cursorMain+1:]...)
+			if m.cursorMain < m.queueIndex {
+				m.queueIndex--
+			}
 		}
 	}
 
@@ -779,6 +793,7 @@ func mediaDeleteSongFromQueue(m model) model {
 func mediaDeleteQueue(m model) model {
 	if m.focus == focusMain {
 		m.queue = nil
+		m.queueIndex = 0
 	}
 
 	return m
