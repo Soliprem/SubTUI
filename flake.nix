@@ -49,10 +49,6 @@
               gopls
               go-tools
             ];
-
-            shellHook = ''
-              export CGO_ENABLED=1
-            '';
           };
         });
     };
