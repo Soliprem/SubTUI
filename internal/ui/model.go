@@ -5,76 +5,9 @@ import (
 	"github.com/MattiaPun/SubTUI/internal/integration"
 	"github.com/MattiaPun/SubTUI/internal/player"
 	"github.com/charmbracelet/bubbles/textinput"
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-)
-
-const (
-	focusSearch = iota
-	focusSidebar
-	focusMain
-	focusSong
-)
-
-const (
-	viewList = iota
-	viewQueue
-	viewLogin = 99
-)
-
-const (
-	filterSongs = iota
-	filterAlbums
-	filterArtist
-)
-
-const (
-	displaySongs = iota
-	displayAlbums
-	displayArtist
-)
-
-const (
-	LoopNone = 0
-	LoopAll  = 1
-	LoopOne  = 2
 )
 
 var albumTypes = []string{"Random", "Favorites", "Recently Added", "Recently Played", "Most Played"}
-
-var (
-	// Colors
-	subtle    = lipgloss.AdaptiveColor{Light: "#D9DCCF", Dark: "#6b6b6bff"}
-	highlight = lipgloss.AdaptiveColor{Light: "#874BFD", Dark: "#7D56F4"}
-	special   = lipgloss.AdaptiveColor{Light: "#43BF6D", Dark: "#73F59F"}
-
-	// Global Borders
-	borderStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(subtle)
-
-	// Focused Border (Brighter)
-	activeBorderStyle = lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(highlight)
-
-	loginBoxStyle = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(highlight).
-			Padding(1, 4).
-			Align(lipgloss.Center)
-
-	// The "Welcome" header
-	loginHeaderStyle = lipgloss.NewStyle().
-				Foreground(special).
-				Bold(true).
-				MarginBottom(1)
-
-	// The footer instruction
-	loginHelpStyle = lipgloss.NewStyle().
-			Foreground(subtle).
-			MarginTop(2)
-)
 
 // --- MODEL ---
 type model struct {
@@ -86,10 +19,11 @@ type model struct {
 	playerStatus player.PlayerStatus
 
 	// Navigation State
-	focus      int
-	cursorMain int
-	cursorSide int
-	mainOffset int
+	focus               int
+	cursorMain          int
+	cursorSide          int
+	cursorAddToPlaylist int
+	mainOffset          int
 
 	// Window Dimensions
 	width  int
@@ -107,6 +41,7 @@ type model struct {
 	lastPlayedSongID string
 	scrobbled        bool
 	loginErr         string
+	discordRPC       bool
 	notify           bool
 
 	// Integrations
@@ -128,14 +63,19 @@ type model struct {
 	// Input State
 	lastKey string
 
-	// Help Overlay
-	showHelp  bool
-	helpModel HelpModel
+	// Overlay States
+	showHelp      bool
+	showPlaylists bool
+	helpModel     HelpModel
 }
 
 type HelpModel struct {
 	Width  int
 	Height int
+}
+
+type ContentModel struct {
+	Content string
 }
 
 type BackgroundWrapper struct {
@@ -170,7 +110,11 @@ type playQueueResultMsg struct {
 	result *api.PlayQueue
 }
 
-type viewLikedSongsMsg *api.SearchResult3
+type viewStarredSongsMsg *api.SearchResult3
+
+type createShareMsg struct {
+	url string
+}
 
 type errMsg struct {
 	err error
@@ -184,69 +128,4 @@ type SetDBusMsg struct {
 
 type SetDiscordMsg struct {
 	Instance *integration.DiscordInstance
-}
-
-func InitialModel() model {
-	ti := textinput.New()
-	ti.Placeholder = "Search songs..."
-	ti.Focus()
-	ti.CharLimit = 156
-	ti.Width = 50
-
-	startMode := viewList
-	if api.AppConfig.Username == "" || api.AppConfig.Password == "" || api.AppConfig.URL == "" {
-		startMode = viewLogin
-	}
-
-	return model{
-		textInput:        ti,
-		songs:            []api.Song{},
-		focus:            focusSearch,
-		cursorMain:       0,
-		cursorSide:       0,
-		viewMode:         startMode,
-		filterMode:       filterSongs,
-		displayMode:      displaySongs,
-		starredMap:       make(map[string]bool),
-		lastPlayedSongID: "",
-		loginInputs:      initialLoginInputs(),
-		lastKey:          "",
-		showHelp:         false,
-		helpModel:        NewHelpModel(),
-		notify:           true,
-	}
-}
-
-func (m model) Init() tea.Cmd {
-	if m.viewMode == viewList {
-		return tea.Batch(
-			textinput.Blink,
-			attemptLoginCmd(),
-		)
-	}
-
-	return textinput.Blink
-}
-
-func initialLoginInputs() []textinput.Model {
-	inputs := make([]textinput.Model, 3)
-
-	inputs[0] = textinput.New()
-	inputs[0].Placeholder = "http(s)://music.example.com"
-	inputs[0].Width = 30
-	inputs[0].Focus()
-	inputs[0].Prompt = "URL:      "
-
-	inputs[1] = textinput.New()
-	inputs[1].Placeholder = "username"
-	inputs[1].Width = 30
-	inputs[1].Prompt = "Username: "
-
-	inputs[2] = textinput.New()
-	inputs[2].Placeholder = "password"
-	inputs[2].EchoMode = textinput.EchoPassword
-	inputs[2].Width = 30
-	inputs[2].Prompt = "Password: "
-
-	return inputs
 }

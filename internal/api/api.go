@@ -14,83 +14,6 @@ import (
 	"time"
 )
 
-type SubsonicResponse struct {
-	Response struct {
-		Status            string         `json:"status"`
-		User              *SubsonicUser  `json:"user,omitempty"`
-		Error             *SubsonicError `json:"error,omitempty"`
-		SearchResult      SearchResult3  `json:"searchResult3"`
-		PlaylistContainer struct {
-			Playlists []Playlist `json:"playlist"`
-		} `json:"playlists"`
-		PlaylistDetail struct {
-			Entries []Song `json:"entry"`
-		} `json:"playlist"`
-		Album struct {
-			Songs []Song `json:"song"`
-		} `json:"album"`
-		AlbumList struct {
-			Albums []Album `json:"album"`
-		} `json:"albumList"`
-		Artist struct {
-			Albums []Album `json:"album"`
-		} `json:"artist"`
-		Starred2 struct {
-			Artist []Artist `json:"artist"`
-			Album  []Album  `json:"album"`
-			Song   []Song   `json:"song"`
-		} `json:"starred2"`
-		PlayQueue PlayQueue `json:"playQueue"`
-	} `json:"subsonic-response"`
-}
-
-type SubsonicUser struct {
-	Username string `json:"username"`
-	Email    string `json:"email"`
-}
-
-type SubsonicError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
-type PlayQueue struct {
-	Current string `json:"current"`
-	Entries []Song `json:"entry"`
-}
-
-type SearchResult3 struct {
-	Artists []Artist `json:"artist"`
-	Albums  []Album  `json:"album"`
-	Songs   []Song   `json:"song"`
-}
-
-type Artist struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
-type Album struct {
-	ID     string `json:"id"`
-	Name   string `json:"name"`
-	Artist string `json:"artist"`
-}
-
-type Song struct {
-	ID       string `json:"id"`
-	Title    string `json:"title"`
-	Artist   string `json:"artist"`
-	ArtistID string `json:"artistId"`
-	Album    string `json:"album"`
-	AlbumID  string `json:"albumId"`
-	Duration int    `json:"duration"`
-}
-
-type Playlist struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
 func generateSalt() string {
 	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
 	b := make([]byte, 6)
@@ -100,20 +23,26 @@ func generateSalt() string {
 	return string(b)
 }
 
-func subsonicGET(endpoint string, params map[string]string) (*SubsonicResponse, error) {
-	baseUrl := AppConfig.URL + "/rest" + endpoint
-
+func getAuthParams() url.Values {
 	salt := generateSalt()
-	hash := md5.Sum([]byte(AppConfig.Password + salt))
+	hash := md5.Sum([]byte(AppConfig.Server.Password + salt))
 	token := hex.EncodeToString(hash[:])
 
 	v := url.Values{}
-	v.Set("u", AppConfig.Username)
+	v.Set("u", AppConfig.Server.Username)
 	v.Set("t", token)
 	v.Set("s", salt)
 	v.Set("v", "1.16.1")
 	v.Set("c", "SubTUI")
 	v.Set("f", "json")
+
+	return v
+}
+
+func subsonicGET(endpoint string, params map[string]string) (*SubsonicResponse, error) {
+	baseUrl := AppConfig.Server.URL + "/rest" + endpoint
+
+	v := getAuthParams()
 
 	for key, value := range params {
 		v.Set(key, value)
@@ -313,21 +242,12 @@ func SubsonicGetStarred() (*SearchResult3, error) {
 }
 
 func SubsonicStream(id string) string {
-	baseUrl := AppConfig.URL + "/rest/stream"
+	baseUrl := AppConfig.Server.URL + "/rest/stream"
 
-	salt := generateSalt()
-	hash := md5.Sum([]byte(AppConfig.Password + salt))
-	token := hex.EncodeToString(hash[:])
+	v := getAuthParams()
 
-	v := url.Values{}
 	v.Set("id", id)
 	v.Set("maxBitRate", "0")
-	v.Set("u", AppConfig.Username)
-	v.Set("t", token)
-	v.Set("s", salt)
-	v.Set("v", "1.16.1")
-	v.Set("c", "SubTUI")
-	v.Set("f", "json")
 
 	fullUrl := baseUrl + "?" + v.Encode()
 
@@ -347,21 +267,12 @@ func SubsonicScrobble(id string, submission bool) {
 }
 
 func SubsonicCoverArtUrl(id string, size int) string {
-	baseUrl := AppConfig.URL + "/rest/getCoverArt"
+	baseUrl := AppConfig.Server.URL + "/rest/getCoverArt"
 
-	salt := generateSalt()
-	hash := md5.Sum([]byte(AppConfig.Password + salt))
-	token := hex.EncodeToString(hash[:])
+	v := getAuthParams()
 
-	v := url.Values{}
 	v.Set("id", id)
 	v.Set("size", strconv.Itoa(size))
-	v.Set("u", AppConfig.Username)
-	v.Set("t", token)
-	v.Set("s", salt)
-	v.Set("v", "1.16.1")
-	v.Set("c", "SubTUI")
-	v.Set("f", "json")
 
 	url := baseUrl + "?" + v.Encode()
 	return url
@@ -384,19 +295,9 @@ func SubsonicCoverArt(id string) ([]byte, error) {
 }
 
 func SubsonicSaveQueue(ids []string, currentID string) {
-	baseUrl := AppConfig.URL + "/rest/savePlayQueue"
+	baseUrl := AppConfig.Server.URL + "/rest/savePlayQueue"
 
-	salt := generateSalt()
-	hash := md5.Sum([]byte(AppConfig.Password + salt))
-	token := hex.EncodeToString(hash[:])
-
-	v := url.Values{}
-	v.Set("u", AppConfig.Username)
-	v.Set("t", token)
-	v.Set("s", salt)
-	v.Set("v", "1.16.1")
-	v.Set("c", "SubTUI")
-	v.Set("f", "json")
+	v := getAuthParams()
 
 	v.Set("current", currentID)
 	for _, id := range ids {
@@ -418,4 +319,30 @@ func SubsonicGetQueue() (*PlayQueue, error) {
 	}
 
 	return &data.Response.PlayQueue, nil
+}
+
+func SubsonicAddToPlaylist(songID string, playlistID string) {
+	params := map[string]string{
+		"playlistId":  playlistID,
+		"songIdToAdd": songID,
+	}
+
+	_, _ = subsonicGET("/updatePlaylist", params)
+}
+
+func SubsonicCreateShare(ID string) (string, error) {
+	params := map[string]string{
+		"id": ID,
+	}
+
+	data, err := subsonicGET("/createShare", params)
+	if err != nil {
+		log.Printf("[ERROR] API Error in CreateShare: %v", err)
+		return "", err
+	}
+
+	url := data.Response.Shares.ShareList[0].URL
+	log.Printf("[SHARE] Generated Share URL: %s", url)
+
+	return url, nil
 }

@@ -1,10 +1,7 @@
 package ui
 
 import (
-	"time"
-
 	"github.com/MattiaPun/SubTUI/internal/api"
-	"github.com/MattiaPun/SubTUI/internal/player"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -31,7 +28,6 @@ func searchCmd(query string, mode int) tea.Cmd {
 			return songsResultMsg{songs}
 
 		case filterAlbums:
-			// Ensure api.SubsonicSearchAlbum exists in your api package!
 			albums, err := api.SubsonicSearchAlbum(query, 0)
 			if err != nil {
 				return errMsg{err}
@@ -39,7 +35,6 @@ func searchCmd(query string, mode int) tea.Cmd {
 			return albumsResultMsg{albums}
 
 		case filterArtist:
-			// Ensure api.SubsonicSearchArtist exists in your api package!
 			artists, err := api.SubsonicSearchArtist(query, 0)
 			if err != nil {
 				return errMsg{err}
@@ -101,12 +96,6 @@ func getPlaylistSongs(id string) tea.Cmd {
 	}
 }
 
-func syncPlayerCmd() tea.Cmd {
-	return tea.Tick(time.Millisecond*500, func(t time.Time) tea.Msg {
-		return statusMsg(player.GetPlayerStatus())
-	})
-}
-
 func getStarredCmd() tea.Cmd {
 	return func() tea.Msg {
 		result, err := api.SubsonicGetStarred()
@@ -124,7 +113,7 @@ func openLikedSongsCmd() tea.Cmd {
 			return errMsg{err}
 		}
 
-		return viewLikedSongsMsg(result)
+		return viewStarredSongsMsg(result)
 	}
 }
 
@@ -159,5 +148,30 @@ func savePlayQueueCmd(ids []string, currentID string) tea.Cmd {
 
 		return nil
 	}
+}
 
+func addSongToPlaylistCmd(songID string, playlistID string) tea.Cmd {
+	return func() tea.Msg {
+
+		if songID != "" && playlistID != "" {
+			api.SubsonicAddToPlaylist(songID, playlistID)
+		}
+
+		return nil
+	}
+}
+
+func createMediaShareCmd(ID string) tea.Cmd {
+	return func() tea.Msg {
+
+		if ID != "" {
+			url, err := api.SubsonicCreateShare(ID)
+			if err != nil {
+				return errMsg{err}
+			}
+
+			return createShareMsg{url: url}
+		}
+		return nil
+	}
 }

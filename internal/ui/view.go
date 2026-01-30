@@ -14,14 +14,29 @@ import (
 func (m model) View() string {
 	base := m.BaseView()
 
-	if !m.showHelp {
-		return base
+	if m.showPlaylists {
+		rawContent := addToPlaylistContent(m)
+
+		styledContent := popupStyle.Render(
+			lipgloss.JoinVertical(lipgloss.Center,
+				lipgloss.NewStyle().Bold(true).Render("Select Playlist"),
+				"",
+				rawContent,
+			),
+		)
+
+		fg := ContentModel{Content: styledContent}
+		bg := BackgroundWrapper{RenderedView: base}
+
+		return overlay.New(fg, bg, overlay.Center, overlay.Center, 0, 0).View()
 	}
 
-	bgModel := BackgroundWrapper{RenderedView: base}
-	overlayView := overlay.New(m.helpModel, bgModel, overlay.Center, overlay.Center, 0, 0)
+	if m.showHelp {
+		bg := BackgroundWrapper{RenderedView: base}
+		return overlay.New(m.helpModel, bg, overlay.Center, overlay.Center, 0, 0).View()
+	}
 
-	return overlayView.View()
+	return base
 }
 
 func (m model) BaseView() string {
@@ -121,6 +136,13 @@ func truncate(s string, w int) string {
 	return s
 }
 
+func formatTime(v int64) string {
+	minutes := int(v) / 60
+	seconds := int(v) % 60
+
+	return fmt.Sprintf("%d:%02d", minutes, seconds)
+}
+
 func LimitString(s string, limit int) string {
 	if limit <= 0 {
 		return ""
@@ -217,7 +239,7 @@ func sidebarContent(m model, mainHeight int, sidebarWidth int) string {
 		cursor := "  "
 		style := lipgloss.NewStyle()
 		if m.cursorSide == i && m.focus == focusSidebar {
-			style = style.Foreground(highlight).Bold(true)
+			style = style.Foreground(Theme.Highlight).Bold(true)
 			cursor = "> "
 		}
 
@@ -238,7 +260,7 @@ func sidebarContent(m model, mainHeight int, sidebarWidth int) string {
 			cursor := "  "
 			style := lipgloss.NewStyle()
 			if m.cursorSide == i+albumOffset && m.focus == focusSidebar {
-				style = style.Foreground(highlight).Bold(true)
+				style = style.Foreground(Theme.Highlight).Bold(true)
 				cursor = "> "
 			}
 
@@ -274,7 +296,7 @@ func mainSongsContent(m model, mainWidth int, mainHeight int) string {
 	colAlbum := int(float64(availableWidth) * 0.25)
 	// Time takes whatever is left
 
-	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(subtle)
+	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(Theme.Subtle)
 	header := fmt.Sprintf("  %s %s %s %s",
 		LimitString(mainTableHeader, colTitle),
 		LimitString("ARTIST", colArtist),
@@ -283,7 +305,7 @@ func mainSongsContent(m model, mainWidth int, mainHeight int) string {
 	)
 
 	mainContent = headerStyle.Render(header) + "\n"
-	mainContent += lipgloss.NewStyle().Foreground(subtle).Render("  "+strings.Repeat("-", mainWidth-4)) + "\n"
+	mainContent += lipgloss.NewStyle().Foreground(Theme.Subtle).Render("  "+strings.Repeat("-", mainWidth-4)) + "\n"
 
 	headerHeight := 4
 	visibleRows := mainHeight - headerHeight
@@ -310,14 +332,14 @@ func mainSongsContent(m model, mainWidth int, mainHeight int) string {
 		if m.cursorMain == i {
 			cursor = "> "
 			if m.focus == focusMain {
-				style = style.Foreground(highlight).Bold(true)
+				style = style.Foreground(Theme.Highlight).Bold(true)
 			} else {
-				style = style.Foreground(subtle)
+				style = style.Foreground(Theme.Subtle)
 			}
 		}
 
 		if m.viewMode == viewQueue && i == m.queueIndex {
-			style = style.Foreground(special)
+			style = style.Foreground(Theme.Special)
 			if m.cursorMain == i {
 				cursor = "> "
 			} else {
@@ -350,16 +372,18 @@ func mainAlbumsContent(m model, mainWidth int, mainHeight int) string {
 	}
 
 	availableWidth := mainWidth - 4
-	colAlbum := int(float64(availableWidth) * 0.5)
-	colArtist := int(float64(availableWidth) * 0.5)
-	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(subtle)
-	header := fmt.Sprintf("  %s %s",
+	colAlbum := int(float64(availableWidth) * 0.45)
+	colArtist := int(float64(availableWidth) * 0.45)
+	colDuration := int(float64(availableWidth) * 0.1)
+	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(Theme.Subtle)
+	header := fmt.Sprintf("  %s %s %s",
 		LimitString("ALBUM", colAlbum),
 		LimitString("ARTIST", colArtist),
+		LimitString("DURATION", colDuration),
 	)
 
 	mainContent := headerStyle.Render(header) + "\n"
-	mainContent += lipgloss.NewStyle().Foreground(subtle).Render("  "+strings.Repeat("-", mainWidth-4)) + "\n"
+	mainContent += lipgloss.NewStyle().Foreground(Theme.Subtle).Render("  "+strings.Repeat("-", mainWidth-4)) + "\n"
 
 	headerHeight := 4
 	visibleRows := mainHeight - headerHeight
@@ -386,9 +410,9 @@ func mainAlbumsContent(m model, mainWidth int, mainHeight int) string {
 		if m.cursorMain == i {
 			cursor = "> "
 			if m.focus == focusMain {
-				style = style.Foreground(highlight).Bold(true)
+				style = style.Foreground(Theme.Highlight).Bold(true)
 			} else {
-				style = style.Foreground(subtle)
+				style = style.Foreground(Theme.Subtle)
 			}
 		}
 
@@ -397,10 +421,11 @@ func mainAlbumsContent(m model, mainWidth int, mainHeight int) string {
 			starIcon = "♥"
 		}
 
-		row := fmt.Sprintf("%s %s %s",
+		row := fmt.Sprintf("%s %s %s %s",
 			starIcon, // 1 char
 			LimitString(album.Name, colAlbum-2),
 			LimitString(album.Artist, colArtist),
+			LimitString(formatTime(album.Duration), colDuration),
 		)
 
 		mainContent += fmt.Sprintf("%s%s\n", cursor, style.Render(row))
@@ -415,11 +440,11 @@ func mainArtistContent(m model, mainWidth int, mainHeight int) string {
 	}
 
 	colArtist := mainWidth - 4
-	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(subtle)
+	headerStyle := lipgloss.NewStyle().Bold(true).Foreground(Theme.Subtle)
 	header := fmt.Sprintf("  %s", LimitString("ARTIST", colArtist))
 
 	mainContent := headerStyle.Render(header) + "\n"
-	mainContent += lipgloss.NewStyle().Foreground(subtle).Render("  "+strings.Repeat("-", mainWidth-4)) + "\n"
+	mainContent += lipgloss.NewStyle().Foreground(Theme.Subtle).Render("  "+strings.Repeat("-", mainWidth-4)) + "\n"
 
 	headerHeight := 4
 	visibleRows := mainHeight - headerHeight
@@ -446,9 +471,9 @@ func mainArtistContent(m model, mainWidth int, mainHeight int) string {
 		if m.cursorMain == i {
 			cursor = "> "
 			if m.focus == focusMain {
-				style = style.Foreground(highlight).Bold(true)
+				style = style.Foreground(Theme.Highlight).Bold(true)
 			} else {
-				style = style.Foreground(subtle)
+				style = style.Foreground(Theme.Subtle)
 			}
 		}
 
@@ -540,12 +565,12 @@ func footerContent(m model) string {
 
 	bottomRowText := artistAlbumText + strings.Repeat(" ", bottomRowGap) + loopText
 
-	topRow := lipgloss.NewStyle().Bold(true).Foreground(highlight).Render("   " + LimitString(title, m.width-4))
-	bottomRow := lipgloss.NewStyle().Foreground(subtle).Render("   " + LimitString(bottomRowText, m.width-4))
+	topRow := lipgloss.NewStyle().Bold(true).Foreground(Theme.Highlight).Render("   " + LimitString(title, m.width-4))
+	bottomRow := lipgloss.NewStyle().Foreground(Theme.Subtle).Render("   " + LimitString(bottomRowText, m.width-4))
 
 	rawProgress := fmt.Sprintf("%s %s %s",
 		currStr,
-		lipgloss.NewStyle().Foreground(special).Render("["+barStr+"]"),
+		lipgloss.NewStyle().Foreground(Theme.Special).Render("["+barStr+"]"),
 		durStr,
 	)
 
@@ -558,11 +583,10 @@ func footerContent(m model) string {
 }
 
 func helpViewContent() string {
-	keyStyle := lipgloss.NewStyle().Foreground(special).Bold(true)
-	descStyle := lipgloss.NewStyle().Foreground(subtle)
-	titleStyle := lipgloss.NewStyle().Foreground(highlight).Bold(true).MarginBottom(1)
+	keyStyle := lipgloss.NewStyle().Foreground(Theme.Special).Bold(true)
+	descStyle := lipgloss.NewStyle().Foreground(Theme.Subtle)
+	titleStyle := lipgloss.NewStyle().Foreground(Theme.Highlight).Bold(true).MarginBottom(1)
 	colStyle := lipgloss.NewStyle().MarginRight(4)
-	sectionSpacer := lipgloss.NewStyle().MarginBottom(2)
 
 	// Helper to format lines
 	line := func(key, desc string) string {
@@ -575,68 +599,90 @@ func helpViewContent() string {
 		return lipgloss.JoinVertical(lipgloss.Left, titleStyle.Render(title), content)
 	}
 
-	globalKeybinds := section("NAVIGATION",
-		line("Tab", "Cycle focus"),
-		line("Shift+Tab", "Cycle focus"),
-		line("k / Up", "Move Up"),
-		line("j / Down", "Move Down"),
-		line("Enter", "Select"),
-		line("/", "Search bar"),
-		line("q / Ctrl+C", "Quit"),
+	// Helper to format key lists
+	keys := func(k []string) string {
+		return strings.Join(k, " / ")
+	}
+
+	globalKeybinds := section("GLOBAL",
+		line(keys(api.AppConfig.Keybinds.Global.CycleFocusNext), "Cycle focus"),
+		line(keys(api.AppConfig.Keybinds.Global.CycleFocusPrev), "Cycle focus"),
+		line(keys(api.AppConfig.Keybinds.Global.Back), "Go back"),
+		line(keys(api.AppConfig.Keybinds.Global.Help), "Shortcut menu"),
+		line(keys(api.AppConfig.Keybinds.Global.Quit), "Quit"),
+		line(keys(api.AppConfig.Keybinds.Global.HardQuit), "Quit"),
+	)
+
+	navigationKeybinds := section("NAVIGATION",
+		line(keys(api.AppConfig.Keybinds.Navigation.Up), "Go up"),
+		line(keys(api.AppConfig.Keybinds.Navigation.Down), "Go down"),
+		line(keys(api.AppConfig.Keybinds.Navigation.Top), "Go to top"),
+		line(keys(api.AppConfig.Keybinds.Navigation.Bottom), "Go to bottom"),
+		line(keys(api.AppConfig.Keybinds.Navigation.Select), "Select"),
 	)
 
 	searchKeybinds := section("SEARCH",
-		line("Ctrl+n", "Filter Next"),
-		line("Ctrl+b", "Filter Prev"),
+		line(keys(api.AppConfig.Keybinds.Search.FocusSearch), "Focus search bar"),
+		line(keys(api.AppConfig.Keybinds.Search.FilterNext), "Filter next"),
+		line(keys(api.AppConfig.Keybinds.Search.FilterPrev), "Filter prev"),
 	)
 
 	libraryKeybinds := section("LIBRARY",
-		line("gg", "Scroll Top"),
-		line("G", "Scroll Bottom"),
-		line("ga", "Go to Album"),
-		line("gr", "Go to Artist"),
+		line(keys(api.AppConfig.Keybinds.Library.AddToPlaylist), "Add to playlist"),
+		line(keys(api.AppConfig.Keybinds.Library.GoToAlbum), "Go to album"),
+		line(keys(api.AppConfig.Keybinds.Library.GoToArtist), "Go to artist"),
 	)
 
 	mediaKeybinds := section("MEDIA",
-		line("p", "Play/Pause"),
-		line("n", "Next Song"),
-		line("b", "Prev Song"),
-		line("S", "Shuffle"),
-		line("L", "Loop Mode"),
-		line("w", "Restart Song"),
-		line(",", "Rewind 10s"),
-		line(";", "Forward 10s"),
-	)
-
-	starredKeybinds := section("FAVORITES",
-		line("f", "Like/Unlike"),
-		line("F", "View Liked"),
+		line(keys(api.AppConfig.Keybinds.Library.GoToArtist), "Play/Pause"),
+		line(keys(api.AppConfig.Keybinds.Media.Next), "Next song"),
+		line(keys(api.AppConfig.Keybinds.Media.Prev), "Prev song"),
+		line(keys(api.AppConfig.Keybinds.Media.Shuffle), "Shuffle"),
+		line(keys(api.AppConfig.Keybinds.Media.Loop), "Loop mode"),
+		line(keys(api.AppConfig.Keybinds.Media.Restart), "Restart song"),
+		line(keys(api.AppConfig.Keybinds.Media.Rewind), "Rewind 10s"),
+		line(keys(api.AppConfig.Keybinds.Media.Forward), "Forward 10s"),
 	)
 
 	queueKeybinds := section("QUEUE",
-		line("Q", "Toggle View"),
-		line("N", "Add Next"),
-		line("a", "Add Last"),
-		line("d", "Remove"),
-		line("D", "Clear All"),
-		line("K", "Move Up"),
-		line("J", "Move Down"),
+		line(keys(api.AppConfig.Keybinds.Queue.ToggleQueueView), "Toggle queue view"),
+		line(keys(api.AppConfig.Keybinds.Queue.QueueNext), "Add next"),
+		line(keys(api.AppConfig.Keybinds.Queue.QueueLast), "Queue last"),
+		line(keys(api.AppConfig.Keybinds.Queue.RemoveFromQueue), "Remove from queue"),
+		line(keys(api.AppConfig.Keybinds.Queue.ClearQueue), "Clear queue"),
+		line(keys(api.AppConfig.Keybinds.Queue.MoveUp), "Queue up"),
+		line(keys(api.AppConfig.Keybinds.Queue.MoveDown), "Queue down"),
+	)
+
+	starredKeybinds := section("FAVORITES",
+		line(keys(api.AppConfig.Keybinds.Favorites.ToggleFavorite), "Toggle fav"),
+		line(keys(api.AppConfig.Keybinds.Favorites.ViewFavorites), "View fav"),
+	)
+
+	otherKeybinds := section("OTHERS",
+		line(keys(api.AppConfig.Keybinds.Other.ToggleNotifications), "Toggle notifications"),
+		line(keys(api.AppConfig.Keybinds.Other.CreateShareLink), "Create share link"),
 	)
 
 	columnLeft := lipgloss.JoinVertical(lipgloss.Left,
-		sectionSpacer.Render(globalKeybinds),
-		" ", // spacer
+		globalKeybinds,
+		"", // spacer
 		libraryKeybinds,
+		"", // spacer
+		otherKeybinds,
 	)
 
 	columnMiddle := lipgloss.JoinVertical(lipgloss.Left,
-		sectionSpacer.Render(mediaKeybinds),
-		starredKeybinds,
+		mediaKeybinds,
+		"", // spacer
+		navigationKeybinds,
 	)
 
 	columnRight := lipgloss.JoinVertical(lipgloss.Left,
-		sectionSpacer.Render(queueKeybinds),
-		" ", // spacer
+		queueKeybinds,
+		"", // spacer
+		starredKeybinds,
+		"", // spacer
 		searchKeybinds,
 	)
 
@@ -648,4 +694,22 @@ func helpViewContent() string {
 
 	return activeBorderStyle.Padding(1, 3).Render(content)
 
+}
+
+func addToPlaylistContent(m model) string {
+	playlistContent := ""
+	for i := 0; i < len(m.playlists); i++ {
+		cursor := ""
+		style := lipgloss.NewStyle()
+
+		if m.cursorAddToPlaylist == i {
+			style = style.Foreground(Theme.Highlight).Bold(true)
+			cursor = "> "
+		}
+
+		playlistContent += fmt.Sprintf("%s%s\n", cursor, style.Render(m.playlists[i].Name))
+
+	}
+
+	return playlistContent
 }

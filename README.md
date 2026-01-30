@@ -1,6 +1,15 @@
 # SubTUI
 
-**SubTUI** is a lightweight TUI music player for Subsonic-compatible servers (Navidrome, Gonic, Airsonic, etc.) built with Go and the Bubble Tea framework. It uses `mpv` as the underlying audio engine supporting multiple audio formats. It supports scrobbling ensuring your play counts are updated on your server and on any external services configured like Last.FM or ListenBrainz. It also features Discord Rich Presence integration, displaying your current track and status on your profile.
+SubTUI is your next favorite lightweight music player for Subsonic-compatible servers like Navidrome, Gonic, and Airsonic. Built with Go and the Bubble Tea framework, it provides a clean terminal interface to listen to your favorite high-quality audio.
+
+## Key Features
+* **Subsonic-compatible**: Connect and stream from any Subsonic-compatible server
+* **Format comaptiblity**: Uses `mpv` to support various audio codecs and reliable playback
+* **Fully Customizable**: Configure keybinds, color themes, and settings via a simple TOML file
+* **ReplayGain Support**: Built-in support for Track and Album volume normalization
+* **Scrobbling**: Automatically updates your play counts on your server and external services like Last.FM or ListenBrainz
+* **Gapless Playback**: Enjoy your favorite albums exactly as intented with smooth, uninterrupted transitions
+* **Discord Integrations**: Show of your listing to with built-in Discord Rich Presence
 
 ![Main View](./screenshots/main_view.png)
 
@@ -10,9 +19,9 @@
 
 You must have **mpv** installed and available in your system path.
 
-- **Ubuntu/Debian:** `sudo apt install mpv`
-- **Arch:** `sudo pacman -S mpv`
-- **macOS:** `brew install mpv`
+* **Ubuntu/Debian:** `sudo apt install mpv`
+* **Arch:** `sudo pacman -S mpv`
+* **macOS:** `brew install mpv`
 
 ### From Releases
 
@@ -40,7 +49,14 @@ go build .
 ./subtui
 ```
 
-## Keybinds
+## Configuration
+On the first launch, SubTUI will generate a default configuration file at: `~/.config/subtui/config.toml`.
+ **Security Note**: Your credentials are stored in plaintext
+
+You can edit this file to save your credentials, change the color theme, or remap any keybind. You can find the default configuration template in the repository at [internal/api/config.toml](internal/api/config.toml)
+
+## Default keybinds
+**Note**: All keybinds below are the defaults. You can customize them in your config.toml.
 
 ### Global Navigation
 
@@ -67,6 +83,7 @@ go build .
 
 | Key     | Action                      |
 | ------- | --------------------------- |
+| `A`     | Added selection to playlist |
 | `G`     | Move selection to bottom    |
 | `gg`    | Move selection to top       |
 | `ga`    | Go to album of selection    |
@@ -108,19 +125,12 @@ go build .
 
 ### Other
 
-| Key | Action               |
-| --- | -------------------- |
-| `s` | Toggle notifications |
+| Key        | Action                |
+|------------|-----------------------|
+| `?`        | Shortcut menu         |
+| `s`        | Toggle notifications  |
+| `Ctrl + s` | Create shareable link |
 
-## Configuration
-
-On the first launch, SubTUI will ask for your server credentials:
-
-1. **Server URL:** (e.g., `http(s)://music.example.com`)
-2. **Username**
-3. **Password**
-
-**Security Note**: Your credentials are stored in plaintext in `~/.config/subtui/config.yaml`.
 
 ## Screenshots
 

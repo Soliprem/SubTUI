@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -26,6 +27,7 @@ type PlayerStatus struct {
 	Duration float64
 	Paused   bool
 	Volume   float64
+	Path     string
 }
 
 func InitPlayer() error {
@@ -35,10 +37,18 @@ func InitPlayer() error {
 	_ = exec.Command("pkill", "-f", socketPath).Run()
 	time.Sleep(200 * time.Millisecond)
 
+	replayGain := strings.ToLower(api.AppConfig.App.ReplayGain)
+	if replayGain != "track" && replayGain != "album" {
+		replayGain = "no"
+	}
+
 	args := []string{
 		"--idle",
 		"--no-video",
 		"--input-ipc-server=" + socketPath,
+		"--gapless-audio=yes",
+		"--prefetch-playlist=yes",
+		"--replaygain=" + replayGain,
 	}
 
 	mpvCmd = exec.Command("mpv", args...)
@@ -87,6 +97,27 @@ func PlaySong(songID string, startPaused bool) error {
 	return nil
 }
 
+func EnqueueSong(songID string) error {
+	if mpvClient == nil {
+		return fmt.Errorf("player not initialized")
+	}
+
+	url := api.SubsonicStream(songID)
+	return mpvClient.LoadFile(url, mpv.LoadFileModeAppend)
+}
+
+func UpdateNextSong(songID string) {
+	if mpvClient == nil {
+		return
+	}
+
+	_ = mpvClient.PlayClear()
+
+	if songID != "" {
+		_ = EnqueueSong(songID)
+	}
+}
+
 func TogglePause() {
 	if mpvClient == nil {
 		return
@@ -123,6 +154,8 @@ func GetPlayerStatus() PlayerStatus {
 	paused := mpvClient.IsPause()
 	vol, _ := mpvClient.GetFloatProperty("volume")
 
+	path := mpvClient.GetProperty("path")
+
 	return PlayerStatus{
 		Title:    fmt.Sprintf("%v", title),
 		Artist:   fmt.Sprintf("%v", artist),
@@ -131,5 +164,6 @@ func GetPlayerStatus() PlayerStatus {
 		Duration: dur,
 		Paused:   paused,
 		Volume:   vol,
+		Path:     fmt.Sprintf("%v", path),
 	}
 }
